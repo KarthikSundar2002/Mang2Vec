@@ -1,6 +1,7 @@
 import torch
 import cv2
 import numpy as np
+import os
 
 
 def get_coord(width=128, device='cuda:0'):
@@ -153,7 +154,8 @@ def save_img(res, imgid, divide_number, width, origin_shape, divide=False):
         output = output[0]
     output = (output * 255).astype('uint8')
     output = cv2.resize(output, origin_shape)
-    path = 'output/' + str(imgid) + '.png'
+    path = os.path.join('output', 'tmp', f'{imgid}.png')
+    os.makedirs(os.path.dirname(path), exist_ok=True)
     cv2.imwrite(path, output)
     print(path)
 

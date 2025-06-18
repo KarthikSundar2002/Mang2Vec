@@ -12,7 +12,8 @@ class Decode_np(object):
         self.div_num = div_num
         self.svg_txt_total = ''
         self.num = 0
-        self.SAVE_PATH = './output/'
+        self.SAVE_PATH = './output/tmp/'
+        os.makedirs(self.SAVE_PATH, exist_ok=True)
         self.all_patch_actions = np.load(self.np_path + 'all_patch_actions.npy')
         self.patch_done_list = np.load(self.np_path + 'patch_done_list.npy')
         self.config_list = np.load(self.np_path + 'config_list.npy', allow_pickle=True)
