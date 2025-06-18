@@ -32,10 +32,12 @@ output_dir = args.output_dir
 canvas_cnt = divide * divide
 use_patch_fill = True
 use_PM = False  # Whether to use the pruning module
-T = torch.ones([1, 1, width, width], dtype=torch.float32).to(device)
-coord = vu.get_coord(width=width, device=device)
 
-def process_image(img_path, output_base_dir):
+def process_image(img_path, output_base_dir, actor):
+    # Initialize tensors for this image
+    T = torch.ones([1, 1, width, width], dtype=torch.float32).to(device)
+    coord = vu.get_coord(width=width, device=device)
+    
     # Create image-specific output directory
     img_name = os.path.splitext(os.path.basename(img_path))[0]
     img_output_dir = os.path.join(output_base_dir, img_name)
@@ -144,7 +146,7 @@ if __name__ == '__main__':
     
     for img_path in image_files:
         try:
-            process_image(img_path, args.output_dir)
+            process_image(img_path, args.output_dir, actor)
         except Exception as e:
             print(f"Error processing {img_path}: {str(e)}")
             continue
