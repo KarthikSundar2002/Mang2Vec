@@ -24,6 +24,7 @@ parser.add_argument('--imgid', default=0, type=int, help='set begin number for g
 parser.add_argument('--divide', default=32, type=int, help='divide the target image to get better resolution')
 parser.add_argument('--width', default=128, type=int, help='width of each patch')
 parser.add_argument('--output_dir', default='./output/', type=str, help='output path')
+parser.add_argument('--batch_size', default=5, type=int, help='number of images to process before cleanup')
 args = parser.parse_args()
 
 width = args.width
@@ -32,6 +33,21 @@ output_dir = args.output_dir
 canvas_cnt = divide * divide
 use_patch_fill = True
 use_PM = False  # Whether to use the pruning module
+
+def cleanup_intermediate_files():
+    """Clean up all intermediate files and directories"""
+    # Clean up output_np directory
+    if os.path.exists('./output_np/'):
+        shutil.rmtree('./output_np/')
+    
+    # Clean up any remaining temporary files in output directory
+    for root, dirs, files in os.walk(output_dir):
+        for dir_name in dirs:
+            if dir_name == 'tmp':
+                shutil.rmtree(os.path.join(root, dir_name))
+        for file_name in files:
+            if file_name.endswith('.png') and not file_name == 'target.png':
+                os.remove(os.path.join(root, file_name))
 
 def process_image(img_path, output_base_dir, actor):
     # Initialize tensors for this image
@@ -121,14 +137,10 @@ def process_image(img_path, output_base_dir, actor):
             print("actor time is : {}".format(time_actor))
             print("paint time is : {}".format(time_paint))
             
-            # Move final SVG to svg directory
+            # Return the paths for the final SVG and its destination
             final_svg = os.path.join(tmp_dir, f"{args.imgid-1}.svg")
-            if os.path.exists(final_svg):
-                shutil.move(final_svg, os.path.join(svg_dir, f"{img_name}.svg"))
-            
-            # Clean up temporary files
-            shutil.rmtree(tmp_dir)
-            print(f"Processed {img_path} -> {os.path.join(svg_dir, f'{img_name}.svg')}")
+            dest_svg = os.path.join(svg_dir, f"{img_name}.svg")
+            return final_svg, dest_svg, tmp_dir
 
 if __name__ == '__main__':
     # Create base output directory
@@ -144,9 +156,35 @@ if __name__ == '__main__':
                  glob.glob(os.path.join(args.input_folder, "*.jpg")) + \
                  glob.glob(os.path.join(args.input_folder, "*.jpeg"))
     
-    for img_path in image_files:
-        try:
-            process_image(img_path, args.output_dir, actor)
-        except Exception as e:
-            print(f"Error processing {img_path}: {str(e)}")
-            continue
+    # Process images in batches
+    for i in range(0, len(image_files), args.batch_size):
+        batch = image_files[i:i + args.batch_size]
+        print(f"\nProcessing batch {i//args.batch_size + 1} of {(len(image_files) + args.batch_size - 1)//args.batch_size}")
+        
+        # Store paths of SVGs to move
+        svgs_to_move = []
+        tmp_dirs = []
+        
+        for img_path in batch:
+            try:
+                result = process_image(img_path, args.output_dir, actor)
+                if result:
+                    final_svg, dest_svg, tmp_dir = result
+                    svgs_to_move.append((final_svg, dest_svg))
+                    tmp_dirs.append(tmp_dir)
+            except Exception as e:
+                print(f"Error processing {img_path}: {str(e)}")
+                continue
+        
+        # Move all SVGs to their final destinations
+        print("\nMoving final SVGs to their destinations...")
+        for final_svg, dest_svg in svgs_to_move:
+            if os.path.exists(final_svg):
+                shutil.move(final_svg, dest_svg)
+                print(f"Moved {final_svg} -> {dest_svg}")
+        
+        # Clean up intermediate files after each batch
+        print(f"\nCleaning up intermediate files after batch {i//args.batch_size + 1}")
+        cleanup_intermediate_files()
+    
+    print("\nAll images processed successfully!")
