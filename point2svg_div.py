@@ -397,7 +397,7 @@ class Point2svg(object):
             self.mysvg2pdf(svg_txt=self.svg_txt_total, save_path=SAVE_PATH_PDF)
             # self.mysvg2pdf(svg_txt=self.svg_txt_total, save_path=SAVE_PATH_SVG)
             self.create_str_to_svg(svg_path=SAVE_PATH_SVG, str_data=self.svg_txt_total)
-            print(SAVE_PATH_PNG)
+            #print(SAVE_PATH_PNG)
 
 
     def draw_action_list_for_all_patch(self, path_or_circle='circle'):
@@ -459,6 +459,5 @@ class Point2svg(object):
         d.save_np(mat=np.array(self.div_num), name='div_num', path=np_dir)
         d.save_np(mat=np.array(self.width), name='width', path=np_dir)
         e = time.time()
-        print("Successfully saved temp variables to " + np_dir)
         return e-s
 

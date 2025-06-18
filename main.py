@@ -13,6 +13,7 @@ from DRL.actor import ResNet
 import numpy as np
 import glob
 import shutil
+from tqdm import tqdm
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -116,7 +117,6 @@ def process_image(img_path, output_base_dir, actor):
                 actions = actor(torch.cat([canvas, patch_img, stepnum, coord], 1))
                 p2s.reset_gt_patch(gt=patch_img)
                 canvas, res = vu.decode_list(actions, canvas)
-                print('divided canvas step {}, Loss = {}'.format(i, ((canvas - patch_img) ** 2).mean()))
                 p2s.add_action_div(actions)
                 vu.save_img(canvas, args.imgid, divide_number=divide, width=width, origin_shape=origin_shape,
                             divide=True)
@@ -126,10 +126,6 @@ def process_image(img_path, output_base_dir, actor):
             unless_time = p2s.draw_action_list_for_all_patch(path_or_circle='path')
             unless_time2_s = time.time()
             
-            # Create a custom Decode_np instance with the image-specific np directory
-            print(f"\nProcessing SVG generation for {img_name}")
-            print(f"Using np directory: {np_dir}")
-            print(f"Using tmp directory: {tmp_dir}")
             d = Decode_np(div_num=divide, use_PM=use_PM, np_dir=np_dir)
             unless_time2_e = time.time()
             d.draw_decode()
@@ -137,31 +133,20 @@ def process_image(img_path, output_base_dir, actor):
 
             time_actor = end1 - start
             time_paint = end2 - end1 - unless_time - (unless_time2_e - unless_time2_s)
-            print("actor time is : {}".format(time_actor))
-            print("paint time is : {}".format(time_paint))
             
             # Find the last SVG file in the tmp directory
-            print(f"\nChecking for SVG files in {tmp_dir}")
             tmp_files = os.listdir(tmp_dir)
-            print(f"Temporary files in {tmp_dir}: {tmp_files}")
             svg_files = [f for f in tmp_files if f.endswith('.svg')]
-            print(f"SVG files found: {svg_files}")
             if svg_files:
                 # Sort by number in filename to get the last one
                 last_svg = sorted(svg_files, key=lambda x: int(x.split('.')[0]))[-1]
-                print(f"Selected last SVG: {last_svg}")
                 final_svg = os.path.join(tmp_dir, last_svg)
                 dest_svg = os.path.join(svg_dir, f"{img_name}.svg")
                 
                 # Move the final SVG to the svg directory
                 if os.path.exists(final_svg):
                     shutil.move(final_svg, dest_svg)
-                    print(f"Moved {final_svg} -> {dest_svg}")
                     return final_svg, dest_svg, tmp_dir, np_dir
-                else:
-                    print(f"Warning: SVG file {final_svg} does not exist")
-            else:
-                print(f"Warning: No SVG files found in {tmp_dir}")
             
             return None, None, tmp_dir, np_dir
 
@@ -179,37 +164,35 @@ if __name__ == '__main__':
                  glob.glob(os.path.join(args.input_folder, "*.jpg")) + \
                  glob.glob(os.path.join(args.input_folder, "*.jpeg"))
     
-    # Process images in batches
-    for i in range(0, len(image_files), args.batch_size):
-        batch = image_files[i:i + args.batch_size]
-        print(f"\nProcessing batch {i//args.batch_size + 1} of {(len(image_files) + args.batch_size - 1)//args.batch_size}")
-        
-        # Store paths of SVGs to move
-        svgs_to_move = []
-        tmp_dirs = []
-        np_dirs = []
-        
-        for img_path in batch:
-            try:
-                result = process_image(img_path, args.output_dir, actor)
-                if result and result[0] is not None:  # Check if result exists and final_svg is not None
-                    final_svg, dest_svg, tmp_dir, np_dir = result
-                    svgs_to_move.append((final_svg, dest_svg))
-                    tmp_dirs.append(tmp_dir)
-                    np_dirs.append(np_dir)
-            except Exception as e:
-                print(f"Error processing {img_path}: {str(e)}")
-                continue
-        
-        # Move all SVGs to their final destinations
-        print("\nMoving final SVGs to their destinations...")
-        for final_svg, dest_svg in svgs_to_move:
-            if os.path.exists(final_svg):
-                shutil.move(final_svg, dest_svg)
-                print(f"Moved {final_svg} -> {dest_svg}")
-        
-        # Clean up intermediate files after each batch
-        print(f"\nCleaning up intermediate files after batch {i//args.batch_size + 1}")
-        cleanup_intermediate_files()
+    # Process images in batches with progress bar
+    total_batches = (len(image_files) + args.batch_size - 1) // args.batch_size
+    with tqdm(total=len(image_files), desc="Processing images") as pbar:
+        for i in range(0, len(image_files), args.batch_size):
+            batch = image_files[i:i + args.batch_size]
+            
+            # Store paths of SVGs to move
+            svgs_to_move = []
+            tmp_dirs = []
+            np_dirs = []
+            
+            for img_path in batch:
+                try:
+                    result = process_image(img_path, args.output_dir, actor)
+                    if result and result[0] is not None:
+                        final_svg, dest_svg, tmp_dir, np_dir = result
+                        svgs_to_move.append((final_svg, dest_svg))
+                        tmp_dirs.append(tmp_dir)
+                        np_dirs.append(np_dir)
+                except Exception as e:
+                    print(f"\nError processing {img_path}: {str(e)}")
+                pbar.update(1)
+            
+            # Move all SVGs to their final destinations
+            for final_svg, dest_svg in svgs_to_move:
+                if os.path.exists(final_svg):
+                    shutil.move(final_svg, dest_svg)
+            
+            # Clean up intermediate files after each batch
+            cleanup_intermediate_files()
     
     print("\nAll images processed successfully!")

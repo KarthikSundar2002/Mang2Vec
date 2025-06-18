@@ -35,21 +35,8 @@ class Decode_np(object):
         j = math.floor(patch_num / self.div_num)
         return [i, j]
 
-    def mysvg2pdf(self, svg_txt, save_path):
-        svg_txt = self.START_TXT + svg_txt + self.END_TXT
-        exportPath = save_path
-        exportFileHandle = open(exportPath, 'w')
-        cairosvg.svg2pdf(bytestring=svg_txt, write_to=exportPath)
-        exportFileHandle.close()
-
-    def mysvg2png(self, svg_txt, save_path):
-        svg_txt = self.START_TXT + svg_txt + self.END_TXT
-        svg2png(bytestring=svg_txt, write_to=save_path, output_width=self.output_width,
-                output_height=self.output_width)
-
     def create_str_to_svg(self, svg_path, str_data):
         str_data = self.START_TXT + str_data + self.END_TXT
-        # str_data = '''{}\n{}\n'''.format(str_data, self.END_TXT)
         if not os.path.exists(svg_path):
             with open(svg_path, "w") as f:
                 f.write(str_data)
@@ -60,19 +47,8 @@ class Decode_np(object):
 
     def save_results(self):
         if self.num % 100 == 0 or self.num == len(self.config_list) - 1:
-            print('num{}'.format(self.num))
-            print('leng{}'.format(len(self.config_list) - 1))
             SAVE_PATH_SVG = os.path.join(self.SAVE_PATH, f"{self.num}.svg")
-            SAVE_PATH_PNG = os.path.join(self.SAVE_PATH, f"{self.num}_svg.png")
-            SAVE_PATH_PDF = os.path.join(self.SAVE_PATH, f"{self.num}_svg.pdf")
-            # self.create_str_to_svg(svg_path=SAVE_PATH_SVG, str_data=self.svg_txt_total)
-            self.mysvg2png(svg_txt=self.svg_txt_total, save_path=SAVE_PATH_PNG)
-            self.mysvg2pdf(svg_txt=self.svg_txt_total, save_path=SAVE_PATH_PDF)
-            # self.mysvg2pdf(svg_txt=self.svg_txt_total, save_path=SAVE_PATH_SVG)
             self.create_str_to_svg(svg_path=SAVE_PATH_SVG, str_data=self.svg_txt_total)
-            print(f"Saved SVG to {SAVE_PATH_SVG}")
-            print(f"Saved PNG to {SAVE_PATH_PNG}")
-            print(f"Saved PDF to {SAVE_PATH_PDF}")
 
     def draw_decode(self):
         if self.use_PM:

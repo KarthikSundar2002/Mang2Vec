@@ -157,7 +157,6 @@ def save_img(res, imgid, divide_number, width, origin_shape, divide=False):
     path = os.path.join('output', 'tmp', f'{imgid}.png')
     os.makedirs(os.path.dirname(path), exist_ok=True)
     cv2.imwrite(path, output)
-    print(path)
 
 
 def binarize(img):
