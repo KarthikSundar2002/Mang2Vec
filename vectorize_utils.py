@@ -57,7 +57,7 @@ def Decoder_cv(f, width=128):
         result = np.round(result)
         stroke.append(result)
     stroke = np.array(stroke).astype('float32')
-    stroke = torch.from_numpy(stroke).cuda()
+    stroke = torch.from_numpy(stroke)
     return stroke
 
 

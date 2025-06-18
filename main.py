@@ -36,10 +36,6 @@ use_PM = False  # Whether to use the pruning module
 
 def cleanup_intermediate_files():
     """Clean up all intermediate files and directories"""
-    # Clean up output_np directory
-    if os.path.exists('./output_np/'):
-        shutil.rmtree('./output_np/')
-    
     # Clean up any remaining temporary files in output directory
     for root, dirs, files in os.walk(output_dir):
         for dir_name in dirs:
@@ -62,8 +58,10 @@ def process_image(img_path, output_base_dir, actor):
     # Create subdirectories for different outputs
     svg_dir = os.path.join(img_output_dir, 'svg')
     tmp_dir = os.path.join(img_output_dir, 'tmp')
+    np_dir = os.path.join(img_output_dir, 'np')
     os.makedirs(svg_dir, exist_ok=True)
     os.makedirs(tmp_dir, exist_ok=True)
+    os.makedirs(np_dir, exist_ok=True)
     
     # Load and process image
     img = cv2.imread(img_path, cv2.IMREAD_GRAYSCALE)
@@ -127,7 +125,12 @@ def process_image(img_path, output_base_dir, actor):
             end1 = time.time()
             unless_time = p2s.draw_action_list_for_all_patch(path_or_circle='path')
             unless_time2_s = time.time()
-            d = Decode_np(div_num=divide, use_PM=use_PM)
+            
+            # Create a custom Decode_np instance with the image-specific np directory
+            print(f"\nProcessing SVG generation for {img_name}")
+            print(f"Using np directory: {np_dir}")
+            print(f"Using tmp directory: {tmp_dir}")
+            d = Decode_np(div_num=divide, use_PM=use_PM, np_dir=np_dir)
             unless_time2_e = time.time()
             d.draw_decode()
             end2 = time.time()
@@ -137,10 +140,30 @@ def process_image(img_path, output_base_dir, actor):
             print("actor time is : {}".format(time_actor))
             print("paint time is : {}".format(time_paint))
             
-            # Return the paths for the final SVG and its destination
-            final_svg = os.path.join(tmp_dir, f"{args.imgid-1}.svg")
-            dest_svg = os.path.join(svg_dir, f"{img_name}.svg")
-            return final_svg, dest_svg, tmp_dir
+            # Find the last SVG file in the tmp directory
+            print(f"\nChecking for SVG files in {tmp_dir}")
+            tmp_files = os.listdir(tmp_dir)
+            print(f"Temporary files in {tmp_dir}: {tmp_files}")
+            svg_files = [f for f in tmp_files if f.endswith('.svg')]
+            print(f"SVG files found: {svg_files}")
+            if svg_files:
+                # Sort by number in filename to get the last one
+                last_svg = sorted(svg_files, key=lambda x: int(x.split('.')[0]))[-1]
+                print(f"Selected last SVG: {last_svg}")
+                final_svg = os.path.join(tmp_dir, last_svg)
+                dest_svg = os.path.join(svg_dir, f"{img_name}.svg")
+                
+                # Move the final SVG to the svg directory
+                if os.path.exists(final_svg):
+                    shutil.move(final_svg, dest_svg)
+                    print(f"Moved {final_svg} -> {dest_svg}")
+                    return final_svg, dest_svg, tmp_dir, np_dir
+                else:
+                    print(f"Warning: SVG file {final_svg} does not exist")
+            else:
+                print(f"Warning: No SVG files found in {tmp_dir}")
+            
+            return None, None, tmp_dir, np_dir
 
 if __name__ == '__main__':
     # Create base output directory
@@ -164,14 +187,16 @@ if __name__ == '__main__':
         # Store paths of SVGs to move
         svgs_to_move = []
         tmp_dirs = []
+        np_dirs = []
         
         for img_path in batch:
             try:
                 result = process_image(img_path, args.output_dir, actor)
-                if result:
-                    final_svg, dest_svg, tmp_dir = result
+                if result and result[0] is not None:  # Check if result exists and final_svg is not None
+                    final_svg, dest_svg, tmp_dir, np_dir = result
                     svgs_to_move.append((final_svg, dest_svg))
                     tmp_dirs.append(tmp_dir)
+                    np_dirs.append(np_dir)
             except Exception as e:
                 print(f"Error processing {img_path}: {str(e)}")
                 continue

@@ -444,18 +444,21 @@ class Point2svg(object):
                 self.config_list.append(config)
 
         s = time.time()
-        temp_path = "./output_np/"
-        d.del_file(temp_path)
-        d.save_np(mat=np.array(self.all_patch_actions), name='all_patch_actions')
-        d.save_np(mat=np.array(self.patch_done_list), name='patch_done_list')
-        d.save_np(mat=np.array(self.config_list, dtype="object"), name='config_list')
-        d.save_np(mat=np.array(self.patch_bgcolor_list), name='patch_bgcolor_list')
-        d.save_np(mat=np.array(self.fill_list), name='fill_list')
-        d.save_np(mat=np.array(self.START_TXT), name='START_TXT')
-        d.save_np(mat=np.array(self.END_TXT), name='END_TXT')
-        d.save_np(mat=np.array(self.div_num), name='div_num')
-        d.save_np(mat=np.array(self.width), name='width')
+        # Create np directory in the same directory as the save_path
+        np_dir = os.path.join(os.path.dirname(self.SAVE_PATH), 'np')
+        os.makedirs(np_dir, exist_ok=True)
+        
+        d.del_file(np_dir)
+        d.save_np(mat=np.array(self.all_patch_actions), name='all_patch_actions', path=np_dir)
+        d.save_np(mat=np.array(self.patch_done_list), name='patch_done_list', path=np_dir)
+        d.save_np(mat=np.array(self.config_list, dtype="object"), name='config_list', path=np_dir)
+        d.save_np(mat=np.array(self.patch_bgcolor_list), name='patch_bgcolor_list', path=np_dir)
+        d.save_np(mat=np.array(self.fill_list), name='fill_list', path=np_dir)
+        d.save_np(mat=np.array(self.START_TXT), name='START_TXT', path=np_dir)
+        d.save_np(mat=np.array(self.END_TXT), name='END_TXT', path=np_dir)
+        d.save_np(mat=np.array(self.div_num), name='div_num', path=np_dir)
+        d.save_np(mat=np.array(self.width), name='width', path=np_dir)
         e = time.time()
-        print("Successfully saved temp variables to "+ temp_path)
+        print("Successfully saved temp variables to " + np_dir)
         return e-s
 

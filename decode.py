@@ -7,22 +7,26 @@ from cairosvg import svg2png
 import shutil
 
 class Decode_np(object):
-    def __init__(self, div_num, use_PM=True):
-        self.np_path = './output_np/'
+    def __init__(self, div_num, use_PM=True, np_dir=None):
+        self.np_path = np_dir if np_dir else './output_np/'
+        if not self.np_path.endswith('/'):
+            self.np_path += '/'
         self.div_num = div_num
         self.svg_txt_total = ''
         self.num = 0
-        self.SAVE_PATH = './output/tmp/'
+        # Use the tmp directory in the same parent directory as np_dir
+        parent_dir = os.path.dirname(os.path.dirname(self.np_path))
+        self.SAVE_PATH = os.path.join(parent_dir, 'tmp')
         os.makedirs(self.SAVE_PATH, exist_ok=True)
-        self.all_patch_actions = np.load(self.np_path + 'all_patch_actions.npy')
-        self.patch_done_list = np.load(self.np_path + 'patch_done_list.npy')
-        self.config_list = np.load(self.np_path + 'config_list.npy', allow_pickle=True)
-        self.fill_list = np.load(self.np_path + 'fill_list.npy', allow_pickle=True)
-        self.patch_bgcolor_list = np.load(self.np_path + 'patch_bgcolor_list.npy', allow_pickle=True)
-        self.START_TXT = str(np.load(self.np_path + 'START_TXT.npy', allow_pickle=True))
-        self.END_TXT = str(np.load(self.np_path + 'END_TXT.npy', allow_pickle=True))
-        self.div_num = np.load(self.np_path + 'div_num.npy', allow_pickle=True)
-        self.width = np.load(self.np_path + 'width.npy', allow_pickle=True)
+        self.all_patch_actions = np.load(os.path.join(self.np_path, 'all_patch_actions.npy'))
+        self.patch_done_list = np.load(os.path.join(self.np_path, 'patch_done_list.npy'))
+        self.config_list = np.load(os.path.join(self.np_path, 'config_list.npy'), allow_pickle=True)
+        self.fill_list = np.load(os.path.join(self.np_path, 'fill_list.npy'), allow_pickle=True)
+        self.patch_bgcolor_list = np.load(os.path.join(self.np_path, 'patch_bgcolor_list.npy'), allow_pickle=True)
+        self.START_TXT = str(np.load(os.path.join(self.np_path, 'START_TXT.npy'), allow_pickle=True))
+        self.END_TXT = str(np.load(os.path.join(self.np_path, 'END_TXT.npy'), allow_pickle=True))
+        self.div_num = np.load(os.path.join(self.np_path, 'div_num.npy'), allow_pickle=True)
+        self.width = np.load(os.path.join(self.np_path, 'width.npy'), allow_pickle=True)
         self.output_width = self.width * self.div_num
         self.use_PM = use_PM
 
@@ -58,15 +62,17 @@ class Decode_np(object):
         if self.num % 100 == 0 or self.num == len(self.config_list) - 1:
             print('num{}'.format(self.num))
             print('leng{}'.format(len(self.config_list) - 1))
-            SAVE_PATH_SVG = self.SAVE_PATH + str(self.num) + '.svg'
-            SAVE_PATH_PNG = self.SAVE_PATH + str(self.num) + '_svg.png'
-            SAVE_PATH_PDF = self.SAVE_PATH + str(self.num) + '_svg.pdf'
+            SAVE_PATH_SVG = os.path.join(self.SAVE_PATH, f"{self.num}.svg")
+            SAVE_PATH_PNG = os.path.join(self.SAVE_PATH, f"{self.num}_svg.png")
+            SAVE_PATH_PDF = os.path.join(self.SAVE_PATH, f"{self.num}_svg.pdf")
             # self.create_str_to_svg(svg_path=SAVE_PATH_SVG, str_data=self.svg_txt_total)
             self.mysvg2png(svg_txt=self.svg_txt_total, save_path=SAVE_PATH_PNG)
             self.mysvg2pdf(svg_txt=self.svg_txt_total, save_path=SAVE_PATH_PDF)
             # self.mysvg2pdf(svg_txt=self.svg_txt_total, save_path=SAVE_PATH_SVG)
             self.create_str_to_svg(svg_path=SAVE_PATH_SVG, str_data=self.svg_txt_total)
-            print(SAVE_PATH_PNG)
+            print(f"Saved SVG to {SAVE_PATH_SVG}")
+            print(f"Saved PNG to {SAVE_PATH_PNG}")
+            print(f"Saved PDF to {SAVE_PATH_PDF}")
 
     def draw_decode(self):
         if self.use_PM:
@@ -130,5 +136,5 @@ def del_file(filepath):
             shutil.rmtree(file_path)
 
 def save_np(mat, name, path='./output_np/'):
-    save_path = '{}{}.npy'.format(path, name)
+    save_path = '{}/{}.npy'.format(path, name)
     np.save(save_path, mat)
