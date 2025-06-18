@@ -141,7 +141,7 @@ class Point2svg(object):
 
         (h, w) = img.shape
         max_size = max(h, w)
-        svg_patch_size = np.float(svg_size) / div_num
+        svg_patch_size = float(svg_size) / div_num
 
         patch_size = 0
         while True:
@@ -448,7 +448,7 @@ class Point2svg(object):
         d.del_file(temp_path)
         d.save_np(mat=np.array(self.all_patch_actions), name='all_patch_actions')
         d.save_np(mat=np.array(self.patch_done_list), name='patch_done_list')
-        d.save_np(mat=np.array(self.config_list), name='config_list')
+        d.save_np(mat=np.array(self.config_list, dtype="object"), name='config_list')
         d.save_np(mat=np.array(self.patch_bgcolor_list), name='patch_bgcolor_list')
         d.save_np(mat=np.array(self.fill_list), name='fill_list')
         d.save_np(mat=np.array(self.START_TXT), name='START_TXT')
