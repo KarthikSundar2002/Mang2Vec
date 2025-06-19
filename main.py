@@ -163,12 +163,28 @@ if __name__ == '__main__':
     image_files = glob.glob(os.path.join(args.input_folder, "*.png")) + \
                  glob.glob(os.path.join(args.input_folder, "*.jpg")) + \
                  glob.glob(os.path.join(args.input_folder, "*.jpeg"))
-    
+
+    # Build set of already-converted image names (without extension)
+    already_converted = set()
+    for folder in os.listdir(args.output_dir):
+        svg_dir = os.path.join(args.output_dir, folder, 'svg')
+        if os.path.isdir(svg_dir):
+            for file in os.listdir(svg_dir):
+                if file.endswith('.svg'):
+                    already_converted.add(os.path.splitext(file)[0])
+
+    # Filter image_files to skip already converted images
+    images_to_process = []
+    for img_path in image_files:
+        img_name = os.path.splitext(os.path.basename(img_path))[0]
+        if img_name not in already_converted:
+            images_to_process.append(img_path)
+
     # Process images in batches with progress bar
-    total_batches = (len(image_files) + args.batch_size - 1) // args.batch_size
-    with tqdm(total=len(image_files), desc="Processing images") as pbar:
-        for i in range(0, len(image_files), args.batch_size):
-            batch = image_files[i:i + args.batch_size]
+    total_batches = (len(images_to_process) + args.batch_size - 1) // args.batch_size
+    with tqdm(total=len(images_to_process), desc="Processing images") as pbar:
+        for i in range(0, len(images_to_process), args.batch_size):
+            batch = images_to_process[i:i + args.batch_size]
             
             # Store paths of SVGs to move
             svgs_to_move = []
